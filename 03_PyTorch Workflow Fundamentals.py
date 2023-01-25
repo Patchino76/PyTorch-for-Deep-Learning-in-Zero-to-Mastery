@@ -47,4 +47,116 @@ def plot_predictions(train_data=X_train,
 
 plot_predictions()
 # %%
-#
+## Create a Linear Regression model class
+
+class LinearRegressionModel(nn.Module):
+    def __init__(self) -> None:
+        super().__init__()
+        #Initialize model parameters
+        self.weights = nn.Parameter(torch.randn(1,requires_grad=True, dtype=float))
+        self.bias = nn.Parameter(torch.randn(1,requires_grad=True, dtype=float))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.weights * x + self.bias
+
+
+# %%
+# torch create a random seed
+torch.manual_seed(42) 
+
+#create an istance of the model LinearRegressionModel
+
+#check parameters
+model_0 = LinearRegressionModel()
+model_0.parameters() # returns a generator
+list(model_0.parameters())
+
+# %%
+#List named parameters
+model_0.state_dict()
+# %%
+#Making predictions with torch.inference_mode()
+with torch.inference_mode():
+    y_preds = model_0(X_test)
+
+y_preds
+# %%
+plot_predictions(predictions=y_preds)
+
+
+# %%
+#Setup a loss func with torch
+loss_fn = nn.L1Loss()
+
+#setup an optimizer
+optimizer = torch.optim.SGD(model_0.parameters(), lr=0.001)
+
+
+# %%
+torch.manual_seed(42)
+#Buld training loop
+epochs = 10000
+
+loss_arr = []
+
+for epoch in range(epochs):
+    #set the model in training mode
+    model_0.train() #set the parameters that require grad to true
+
+    #1. Forward pass
+    y_pred = model_0(X_train)
+
+    #2. calc loss
+    loss = loss_fn(y_pred, y_train)
+    loss_arr.append(loss.detach().numpy())    
+    #3. calc grad
+    optimizer.zero_grad()
+
+    #4. backward prop on the loss with respects to the parameters
+    loss.backward()
+
+    #5. step the optimizer -> perform gradient descent
+    optimizer.step()
+
+
+    model_0.eval() #turns off gradient tracking
+
+    # Testing loop...
+    with torch.inference_mode():
+        test_pred = model_0(X_test)
+        test_loss = loss_fn(test_pred, y_test)
+
+    if epoch %10 == 0:
+        print(f'Epoch: {epoch} Train Loss: {loss} Test Loss: {test_loss}')
+
+
+
+
+
+# %%
+plot_predictions(predictions=test_pred)
+plt.show()
+plt.plot(loss_arr)
+plt.show()
+# %%
+#Saving the model
+# torch.save()
+# torch.load()
+# torch.nn.load_state_dict()
+
+from pathlib import Path
+MODEL_PATH = Path("C:/MFC_Scripts\COURSES/Udemy - PyTorch for Deep Learning in 2023 Zero to Mastery 2022-11")
+MODEL_NAME = "01_workflow_model_0.pth"
+MODEL_SAVE_PATH = MODEL_PATH / MODEL_NAME
+
+torch.save(model_0.state_dict(), MODEL_SAVE_PATH)
+print(f"Saving model to {MODEL_SAVE_PATH}")
+
+
+# %%
+# Loading model
+model_1 = LinearRegressionModel()
+# model_1 = torch.load(MODEL_SAVE_PATH)
+model_1.load_state_dict(torch.load(MODEL_SAVE_PATH))
+
+
